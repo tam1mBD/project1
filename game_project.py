@@ -224,7 +224,8 @@ class Soldier(pygame.sprite.Sprite):
 			self.speed = 0
 			self.alive = False
 			self.update_action(3)
-
+		else:
+			self.alive= True
 
 	def draw(self):
 		screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
@@ -252,7 +253,7 @@ class Iteambox(pygame.sprite.Sprite):
 				if player.ammo >=50:
 					player.health=50
 
-			print(player.health)
+			#print(player.health)
 			self.kill()
 class Bullet(pygame.sprite.Sprite):
 	def __init__(self, x, y, direction):
@@ -275,10 +276,12 @@ class Bullet(pygame.sprite.Sprite):
 			if player.alive:
 				player.health -= 5
 				self.kill()
-		if pygame.sprite.spritecollide(enemy, bullet_group, False):
-			if enemy.alive:
-				enemy.health -= 25
-				self.kill()
+		for enemy in enemy_group:
+			if pygame.sprite.spritecollide(enemy, bullet_group, False):
+				if enemy.alive:
+					enemy.health -= 25
+					self.kill()
+
 #class for flying bird
 class cl_bird:
     def __init__(self,x,y):
