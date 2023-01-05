@@ -1,14 +1,32 @@
 import pygame
 import os
 import random
-pygame.init()
+import csv
 
+pygame.init()
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('SOLO RAIDER')
+
+#load images
+pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
+pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
+mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
+sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
+
+#create function for drawing background
+def draw_bag():
+	screen.fill(BG)
+	width = sky_img.get_width()
+	for x in range(4):
+		screen.blit(sky_img, ((x * width) - scroll * 0.5, 0))
+		screen.blit(mountain_img, ((x * width) - scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
+		screen.blit(pine1_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
+		screen.blit(pine2_img, ((x * width) - scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+
 
 #lODING BIRD IMAGE
 birds= [pygame.image.load(os.path.join("img/birds", "1.png")),
@@ -24,6 +42,7 @@ FPS = 60
 GRAVITY = 0.75
 ROWS = 16
 COLS = 150
+scroll = 0
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
 level = 1
@@ -35,6 +54,13 @@ shoot = False
 
 
 #load images
+#store tiles in a list
+img_list = []
+for x in range(TILE_TYPES):
+	img = pygame.image.load(f'img/tile/{x}.png')
+	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+	img_list.append(img)
+
 #bullet
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 # pick up boxes
@@ -55,9 +81,9 @@ def draw_text(text, font, color, x, y):
 	img=font.render(text, True, color)
 	screen.blit(img,(x,y))
 
-def draw_bg():
-	screen.fill(BG)
-	pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
+# def draw_bg():
+# 	screen.fill(BG)
+# 	pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
 
 
 
@@ -224,11 +250,73 @@ class Soldier(pygame.sprite.Sprite):
 			self.speed = 0
 			self.alive = False
 			self.update_action(3)
-		else:
-			self.alive= True
+
 
 	def draw(self):
 		screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+
+class World():
+	def __init__(self):
+		self.obstacle_list = []
+
+	def process_data(self, data):
+		#iterate through each value in level data file
+		for y, row in enumerate(data):
+			for x, tile in enumerate(row):
+				if tile >= 0:
+					img = img_list[tile]
+					img_rect = img.get_rect()
+					img_rect.x = x * TILE_SIZE
+					img_rect.y = y * TILE_SIZE
+					tile_data = (img, img_rect)
+					if tile >=0 and tile <= 8:
+						self.obstacle_list.append(tile_data)
+					# elif tile >=9 and tile <= 10:
+					# 	water = Water(img, x * TILE_SIZE, y * TILE_SIZE)
+					# 	water_group.add(water)
+					# elif tile >= 11 and tile <= 14:
+					# 	decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
+					# 	decoration_group.add(decoration)
+					elif tile == 15: #create player
+						player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20)
+					elif tile == 16: #create enemies
+						enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 3, 20)
+						enemy_group.add(enemy)
+					elif tile == 17: # create ammo box
+						item_box = Iteambox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
+						item_box_group.add(item_box)
+					elif tile == 19: #create health box
+						item_box = Iteambox('Health', x * TILE_SIZE, y * TILE_SIZE)
+						item_box_group.add(item_box)
+					elif tile == 20: #create exit
+						exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
+						exit_group.add(exit)
+		return player
+	def draw(self):
+		for tile in self.obstacle_list:
+			screen.blit(tile[0], tile[1])
+
+# class Decoration(pygame.sprite.Sprite):
+# 	def __init__(self, img, x, y):
+# 		pygame.sprite.Sprite.__init__(self)
+# 		self.image = img
+# 		self.rect = self.image.get_rect()
+# 		self.rect.midtop = ((x + TILE_SIZE) // 2, y + (TILE_SIZE - self.image.get_height()))
+
+# class Water(pygame.sprite.Sprite):
+# 	def __init__(self, img, x, y):
+# 		pygame.sprite.Sprite.__init__(self)
+# 		self.image = img
+# 		self.rect = self.image.get_rect()
+# 		self.rect.midtop = (x + TILE_SIZE) // 2, y + (TILE_SIZE - self.image.get_height())
+
+class Exit(pygame.sprite.Sprite):
+	def __init__(self, img, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = img
+		self.rect = self.image.get_rect()
+		self.rect.midtop = (x + TILE_SIZE) // 2, y + (TILE_SIZE - self.image.get_height())
+
 
 class Iteambox(pygame.sprite.Sprite):
 	def __init__(self,item_type,x,y):
@@ -253,7 +341,7 @@ class Iteambox(pygame.sprite.Sprite):
 				if player.ammo >=50:
 					player.health=50
 
-			#print(player.health)
+			print(player.health)
 			self.kill()
 class Bullet(pygame.sprite.Sprite):
 	def __init__(self, x, y, direction):
@@ -276,12 +364,10 @@ class Bullet(pygame.sprite.Sprite):
 			if player.alive:
 				player.health -= 5
 				self.kill()
-		for enemy in enemy_group:
-			if pygame.sprite.spritecollide(enemy, bullet_group, False):
-				if enemy.alive:
-					enemy.health -= 25
-					self.kill()
-
+		if pygame.sprite.spritecollide(enemy, bullet_group, False):
+			if enemy.alive:
+				enemy.health -= 25
+				self.kill()
 #class for flying bird
 class cl_bird:
     def __init__(self,x,y):
@@ -311,28 +397,38 @@ birds_list=[]
 #create sprite groups
 bullet_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
-item_box_group=pygame.sprite.Group()
+item_box_group = pygame.sprite.Group()
+# decoration_group = pygame.sprite.Group()
+# water_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 # temp item box
-item_box= Iteambox('Health',100,260)
-item_box_group.add(item_box)
-item_box= Iteambox('Ammo',300,260)
-item_box_group.add(item_box)
+
 #using solder class add hero and enemy
-player = Soldier('player', 200, 200, 1.65, 5, 20)
-
-enemy = Soldier('enemy', 400, 200, 1.65, 3, 20)
-enemy2 = Soldier('enemy', 300, 300, 1.65, 3, 20)
-enemy_group.add(enemy)
-enemy_group.add(enemy2)
 
 
+#create empty tile list
+world_data = []
+for row in range(ROWS):
+	r = [-1] * COLS
+	world_data.append(r)
+#load in level data and create world
+with open(f'level{level}_data.csv', newline='') as csvfile:
+	reader = csv.reader(csvfile, delimiter=',')
+	for x, row in enumerate(reader):
+		for y, tile in enumerate(row):
+			world_data[x][y] = int(tile)
+world = World()
+player = world.process_data(world_data)
 
 run = True
 while run:
 
 	clock.tick(FPS)
-
-	draw_bg()
+	#update background
+	#draw_bg()
+	draw_bag()
+	#draw world map
+	world.draw()
 	#show ammo
 	draw_text(f'AMM0: {player.ammo}' , font, WHITE, 10, 35 )
 	draw_text(f'HEALTH: {player.health}', font, WHITE, 10, 10)
@@ -359,8 +455,14 @@ while run:
 	#update and draw groups
 	bullet_group.update()
 	item_box_group.update()
+	# decoration_group.update()
+	# water_group.update()
+	exit_group.update()
 	item_box_group.draw(screen)
 	bullet_group.draw(screen)
+	# decoration_group.draw(screen)
+	# water_group.draw(screen)
+	exit_group.draw(screen)
 
 
 	#update player actions
@@ -403,8 +505,6 @@ while run:
 				moving_right = False
 			if event.key == pygame.K_SPACE:
 				shoot = False
-
-
 
 
 	pygame.display.update()
