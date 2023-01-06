@@ -1,8 +1,9 @@
 import pygame
+from pygame import mixer
 import os
 import random
 import csv
-
+mixer.init()
 pygame.init()
 
 SCREEN_WIDTH = 800
@@ -34,12 +35,23 @@ birds= [pygame.image.load(os.path.join("img/birds", "1.png")),
         pygame.image.load(os.path.join("img/birds", "3.png")),
         pygame.image.load(os.path.join("img/birds", "4.png")),
         pygame.image.load(os.path.join("img/birds", "5.png"))]
+
+#load mixer and sound
+pygame.mixer.music.load('audio/music2.mp3')
+pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.play(-1,0.0,5000)
+jump_fx = pygame.mixer.Sound('audio/jump.wav')
+pygame.mixer.music.set_volume(.4)
+
+shot_fx = pygame.mixer.Sound('audio/shot.wav')
+pygame.mixer.music.set_volume(.4)
 #set framerate
 clock = pygame.time.Clock()
 FPS = 60
 
 #define game variables
 GRAVITY = 0.75
+start_game= False
 ROWS = 16
 COLS = 150
 scroll = 0
@@ -182,7 +194,7 @@ class Soldier(pygame.sprite.Sprite):
 			bullet_group.add(bullet)
 			#reduce ammo
 			self.ammo -= 1
-
+			shot_fx.play()
 	def ai(self):
 		if self.alive and player.alive:
 			if random.randint(1,200)==5 and self.idling== False:
@@ -364,10 +376,11 @@ class Bullet(pygame.sprite.Sprite):
 			if player.alive:
 				player.health -= 5
 				self.kill()
-		if pygame.sprite.spritecollide(enemy, bullet_group, False):
-			if enemy.alive:
-				enemy.health -= 25
-				self.kill()
+		for enemy in enemy_group:
+			if pygame.sprite.spritecollide(enemy, bullet_group, False):
+				if enemy.alive:
+					enemy.health -= 25
+					self.kill()
 #class for flying bird
 class cl_bird:
     def __init__(self,x,y):
@@ -493,6 +506,7 @@ while run:
 				shoot = True
 			if event.key == pygame.K_w and player.alive:
 				player.jump = True
+				jump_fx.play()
 			if event.key == pygame.K_ESCAPE:
 				run = False
 
