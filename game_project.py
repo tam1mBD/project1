@@ -4,7 +4,6 @@ import os
 import random
 import csv
 import button
-
 mixer.init()
 pygame.init()
 
@@ -15,7 +14,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('SOLO RAIDER')
 
 #load images
-background_img = pygame.image.load('img/sky.png').convert_alpha()
+background_img = pygame.image.load('img/sky3.png').convert_alpha()
 
 #create function for drawing background
 def draw_bag():
@@ -33,7 +32,7 @@ exit_img = pygame.image.load('img/exit_btn.png').convert_alpha()
 restart_img = pygame.image.load('img/restart_btn.png').convert_alpha()
 #load mixer and sound
 pygame.mixer.music.load('audio/music2.mp3')
-pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.set_volume(.3)
 pygame.mixer.music.play(-1, 0.0, 5000)
 jump_fx = pygame.mixer.Sound('audio/jump.wav')
 pygame.mixer.music.set_volume(.4)
@@ -52,7 +51,7 @@ ROWS = 16
 COLS = 150
 scroll = 0
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 21
+TILE_TYPES = 22
 MAX_LEVELS = 3
 screen_scroll = 0
 bg_scroll = 0
@@ -74,12 +73,15 @@ for x in range(TILE_TYPES):
 
 #bullet
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
+
 # pick up boxes
 heal_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
 ammo_box_img = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
+coin_img=pygame.image.load('img/icons/coin.png').convert_alpha()
 item_boxes={
     'Health': heal_box_img,
-    'Ammo': ammo_box_img
+    'Ammo': ammo_box_img,
+    'Coin' : coin_img
 }
 #define colours
 BG = (14, 50, 50)
@@ -112,6 +114,7 @@ class Soldier(pygame.sprite.Sprite):
         self.alive = True
         self.char_type = char_type
         self.speed = speed
+        self.coin =0
         self.ammo = ammo
         self.start_ammo = ammo
         self.shoot_cooldown = 0
@@ -326,7 +329,7 @@ class World():
                     if tile >=0 and tile <= 8:
                         self.obstacle_list.append(tile_data)
                     elif tile == 15: #create player
-                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20)
+                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 15)
                     elif tile == 16: #create enemies
                         enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 3, 20)
                         enemy_group.add(enemy)
@@ -339,6 +342,10 @@ class World():
                     elif tile == 20: #create exit
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
+                    elif tile == 21: # coin added
+                        item_box =Iteambox('Coin',x*TILE_SIZE,y* TILE_SIZE)
+                        item_box_group.add(item_box)
+
         return player
 
     def draw(self):
@@ -379,13 +386,17 @@ class Iteambox(pygame.sprite.Sprite):
                 #maintain max health
                 if player.ammo >= 50:
                     player.health = 50
+            elif self.item_type == 'Coin':
+                player.coin +=1
+                print(player.coin)
 
-            print(player.health)
+
+            #print(player.health)
             self.kill()
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
-        self.speed = 10
+        self.speed =8
         self.image = bullet_img
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
@@ -428,14 +439,14 @@ class cl_bird:
         win.blit(birds[self.stepIndex//4], (self.x, self.y))
         self.stepIndex += 1
     def fly(self):
-        self.x += 3
-        if self.x >= 820:
+        self.x +=3
+        if self.x >= 1600:
             self.x = 0
 
 #create button
 start_button= button.Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 110, start_img, 1)
 exit_button = button.Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 + 20, exit_img, 1)
-restart_button =button.Button(SCREEN_WIDTH // 2 - 180, SCREEN_HEIGHT // 2 - 50, restart_img, 3)
+restart_button =button.Button(SCREEN_WIDTH // 2 - 180, SCREEN_HEIGHT // 2 - 110, restart_img, 3)
 # Draw Game
 pygame.time.delay(30)
 pygame.display.update()
@@ -482,15 +493,18 @@ while run:
         #show ammo
         draw_text(f'AMMO: {player.ammo}', font, WHITE, 10, 35)
         draw_text(f'HEALTH: {player.health}', font, WHITE, 10, 10)
+        draw_text(f'COIN: {player.coin}', font, WHITE, 10, 60)
         player.update()
         player.draw()
 
         # bird motoin
         if len(birds_list) == 0:
-            bird = cl_bird(0, 120)
-            bird1 = cl_bird(35, 140)
+            bird = cl_bird(2, 160)
+            bird1 = cl_bird(30, 140)
+            bird2= cl_bird(0,125)
             birds_list.append(bird)
             birds_list.append(bird1)
+            birds_list.append(bird2)
         for bird in birds_list:
             bird.fly()
         for bird in birds_list:
@@ -550,8 +564,11 @@ while run:
                     for x, row in enumerate(reader):
                         for y, tile in enumerate(row):
                             world_data[x][y] = int(tile)
+
                 world = World()
                 player = world.process_data(world_data)
+            if exit_button.draw(screen) == True:
+                run = False
 
     for event in pygame.event.get():
         #quit game
